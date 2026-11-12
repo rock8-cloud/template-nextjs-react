@@ -1,79 +1,41 @@
-'use client'
+import { TargetExplorer } from '@/components/target-explorer'
+import { TARGET_TYPES, targets } from '@/data/targets'
+import { formatDistance } from '@/lib/format'
 
-import { useEffect, useState } from 'react'
-
-interface SpaceTarget {
-  id: number
-  name: string
-  type: string
-  distance_light_years: number
-}
-
-export default function Home() {
-  const [technology, setTechnology] = useState<string | null>(null)
-  const [targets, setTargets] = useState<SpaceTarget[]>([])
-  const [connected, setConnected] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/info').then(r => r.json()),
-      fetch('/api/targets').then(r => r.json()),
-    ])
-      .then(([info, data]: [{ technology: string }, SpaceTarget[]]) => {
-        setTechnology(info.technology)
-        setTargets(data)
-        setConnected(true)
-      })
-      .catch(() => setConnected(false))
-  }, [])
-
-  const dotClass = connected === null ? 'dot loading' : connected ? 'dot' : 'dot offline'
-  const beLabel  = connected === null ? 'Connecting…' : connected ? technology! : 'Backend not connected'
+export default function HomePage() {
+  const sorted = [...targets].sort((a, b) => a.distanceLightYears - b.distanceLightYears)
+  const stats = [
+    { label: 'Targets', value: String(targets.length) },
+    { label: 'Types', value: String(Object.keys(TARGET_TYPES).length) },
+    { label: 'Nearest', value: formatDistance(sorted[0].distanceLightYears) },
+    { label: 'Farthest', value: formatDistance(sorted[sorted.length - 1].distanceLightYears) },
+  ]
 
   return (
-    <div className="container">
-      <div className="stars" />
-      <div className="content">
-        <div className="rocket">
-          <span className="rocket-icon">🚀</span>
+    <>
+      <div className="mb-12 flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-xl min-w-0 flex-1">
+          <p className="font-mono text-xs tracking-widest text-signal uppercase">Field catalog</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+            Places worth pointing a telescope at
+          </h1>
+          <p className="mt-4 text-lg leading-relaxed text-mute">
+            Stars, planets, nebulae and a couple of black holes, sorted by how long their light takes to
+            reach us.
+          </p>
         </div>
-
-        <h1>Space <span className="gradient">Targets</span></h1>
-
-        <div className="badges">
-          <div className="badge">
-            <span className="dot" />
-            <span>Next.js / React</span>
-          </div>
-          <div className="badge">
-            <span className={dotClass} />
-            <span>{beLabel}</span>
-          </div>
-        </div>
-
-        {connected && (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th className="right">Distance (ly)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {targets.map(t => (
-                  <tr key={t.id}>
-                    <td>{t.name}</td>
-                    <td>{t.type}</td>
-                    <td className="right">{t.distance_light_years.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <dl className="grid shrink-0 grid-cols-2 gap-x-10 gap-y-6 sm:flex">
+          {stats.map((stat) => (
+            <div key={stat.label}>
+              <dt className="font-mono text-xs tracking-wide text-mute uppercase">{stat.label}</dt>
+              <dd className="mt-1 text-2xl font-semibold tracking-tight whitespace-nowrap tabular-nums">
+                {stat.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
-    </div>
+      <TargetExplorer targets={sorted} />
+    </>
   )
 }
